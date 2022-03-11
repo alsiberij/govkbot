@@ -16,7 +16,8 @@ var R = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 type (
 	Field struct {
-		Zone    [][]Cell
+		CGen    [][]Cell
+		nGen    [][]Cell
 		Palette color.Palette
 	}
 	Cell struct {
@@ -25,82 +26,58 @@ type (
 	}
 )
 
-func CreateField(m, n uint) *Field {
+func NewField(m, n uint) *Field {
 	f := new(Field)
-	f.Zone = make([][]Cell, m)
+	f.CGen = make([][]Cell, m)
+	f.nGen = make([][]Cell, m)
 	for i := uint(0); i < m; i++ {
-		f.Zone[i] = make([]Cell, n)
+		f.CGen[i] = make([]Cell, n)
+		f.nGen[i] = make([]Cell, n)
 	}
 	return f
 }
 
 func (f *Field) FillRandom() {
-	for i := 0; i < len(f.Zone); i++ {
-		for j := 0; j < len(f.Zone[i]); j++ {
-			f.Zone[i][j].IsAlive = R.Uint32()%2 == 1
-			if f.Zone[i][j].IsAlive {
-				f.Zone[i][j].Color = f.Palette[R.Uint32()%uint32(len(f.Palette)-1)]
+	for i := 0; i < len(f.CGen); i++ {
+		for j := 0; j < len(f.CGen[i]); j++ {
+			f.CGen[i][j].IsAlive = R.Uint32()%2 == 1
+			if f.CGen[i][j].IsAlive {
+				f.CGen[i][j].Color = f.Palette[R.Uint32()%uint32(len(f.Palette)-1)]
 			} else {
-				f.Zone[i][j].Color = f.Palette[len(f.Palette)-1]
+				f.CGen[i][j].Color = f.Palette[len(f.Palette)-1]
 			}
 		}
 	}
 }
 
 func (f *Field) NextGen() {
-	copyField := CreateField(uint(len(f.Zone)), uint(len(f.Zone[0])))
-
-	for i := range f.Zone {
-		for j := range f.Zone[i] {
-			copyField.Zone[i][j].IsAlive = f.Zone[i][j].IsAlive
-			copyField.Zone[i][j].Color = f.Zone[i][j].Color
-		}
-	}
-
-	for i := range copyField.Zone {
-		for j := range copyField.Zone[i] {
-			neighbours := copyField.GetNeighbours(i, j)
-			if !copyField.Zone[i][j].IsAlive && neighbours == 3 {
-				f.Zone[i][j].IsAlive = true
-				f.Zone[i][j].Color = f.Palette[R.Uint32()%uint32(len(f.Palette)-1)]
-			}
-			if copyField.Zone[i][j].IsAlive {
-				if neighbours == 2 || neighbours == 3 {
-					f.Zone[i][j].IsAlive = true
-					f.Zone[i][j].Color = f.Palette[R.Uint32()%uint32(len(f.Palette)-1)]
-				} else {
-					f.Zone[i][j].IsAlive = false
-					f.Zone[i][j].Color = color.RGBA{R: 0, G: 0, B: 0, A: 255}
-				}
+	for i := range f.CGen {
+		for j := range f.CGen[i] {
+			neighbours := f.GetNeighbours(i, j)
+			if !f.CGen[i][j].IsAlive && neighbours == 3 || f.CGen[i][j].IsAlive && (neighbours == 2 || neighbours == 3) {
+				f.nGen[i][j].IsAlive = true
+				f.nGen[i][j].Color = f.Palette[R.Uint32()%uint32(len(f.Palette)-1)]
+			} else {
+				f.nGen[i][j].IsAlive = false
+				f.nGen[i][j].Color = f.Palette[len(f.Palette)-1]
 			}
 		}
 	}
+	f.CGen, f.nGen = f.nGen, f.CGen
 }
 
 func (f Field) GetNeighbours(i, j int) uint {
-	rows := len(f.Zone)
-	cols := len(f.Zone[i])
-	//todo optimize
+	rows := len(f.CGen)
+	cols := len(f.CGen[i])
 	var neighbours uint
 	for l := i - 1; l <= i+1; l++ {
-		l2 := l
-		if l == -1 {
-			l = rows - 1
-		}
-		l %= rows
+		lf := (l + rows) % rows
 		for m := j - 1; m <= j+1; m++ {
-			m2 := m
-			if m == -1 {
-				m = cols - 1
-			}
-			m %= cols
-
-			if (l != i || m != j) && f.Zone[l][m].IsAlive {
+			mf := (m + cols) % cols
+			if !(lf == i && mf == j) && f.CGen[lf][mf].IsAlive {
 				neighbours++
 			}
-			m = m2
 		}
-		l = l2
 	}
 	return neighbours
 }

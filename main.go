@@ -137,7 +137,7 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 			}
 			palette = append(palette, color.RGBA{R: 0, G: 0, B: 0, A: 255})
 
-			err = gameOfLife.Gen(uint(width), uint(height), uint(cellSize), uint(gens), uint(threads), palette)
+			err = gameOfLife.Generate(uint(width), uint(height), uint(cellSize), uint(gens), uint(threads), palette, "life.gif")
 			if err != nil {
 				_, err = vk.MessagesSend(peerId, "Unable to create GIF, "+err.Error(), nil)
 				if err != nil {

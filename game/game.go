@@ -10,25 +10,25 @@ import (
 	"sync"
 )
 
-func Gen(w, h, c, g, t uint, palette color.Palette) error {
+func Generate(width, height, cellSize, generations, routines uint, palette color.Palette, fileName string) error {
 
 	var wg sync.WaitGroup
 
-	widthImg := w * c
-	heightImg := h * c
+	widthImg := width * cellSize
+	heightImg := height * cellSize
 
-	if widthImg%t != 0 || heightImg%t != 0 {
+	if widthImg%routines != 0 || heightImg%routines != 0 {
 		return errors.New("width or height % 10 != 0")
 	}
 
-	field := CreateField(h, w)
+	field := NewField(height, width)
 
 	field.Palette = palette
 
 	field.FillRandom()
 
 	result := &gif.GIF{}
-	for n := uint(0); n < g; n++ {
+	for n := uint(0); n < generations; n++ {
 		log.Println("GEN: ", n)
 
 		upLeft := image.Point{X: 0, Y: 0}
@@ -36,23 +36,23 @@ func Gen(w, h, c, g, t uint, palette color.Palette) error {
 
 		img := image.NewPaletted(image.Rectangle{Min: upLeft, Max: lowRight}, palette)
 
-		wg.Add(int(t))
-		for i := uint(0); i < t; i++ {
-			routineNumber := i
+		wg.Add(int(routines))
+		for i := uint(0); i < routines; i++ {
+			ii := i
 			go func() {
-				draw(img, field, heightImg/t, routineNumber, widthImg, c)
+				draw(img, field, heightImg/routines, ii, widthImg, cellSize)
 				wg.Done()
 			}()
 		}
 		wg.Wait()
 
 		result.Image = append(result.Image, img)
-		result.Delay = append(result.Delay, 1)
+		result.Delay = append(result.Delay, 10)
 
 		field.NextGen()
 	}
 
-	f, err := os.Create("life.gif")
+	f, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}
@@ -69,14 +69,10 @@ func Gen(w, h, c, g, t uint, palette color.Palette) error {
 	return nil
 }
 
-func draw(canvas *image.Paletted, field *Field, rows, i, w, c uint) {
-	for x := uint(0); x < w; x++ {
-		for y := rows * i; y < rows*(i+1); y++ {
-			if field.Zone[y/c][x/c].IsAlive {
-				canvas.Set(int(x), int(y), field.Zone[y/c][x/c].Color)
-			} else {
-				canvas.Set(int(x), int(y), field.Zone[y/c][x/c].Color)
-			}
+func draw(canvas *image.Paletted, field *Field, totalRows, indexRow, width, cellSize uint) {
+	for x := uint(0); x < width; x++ {
+		for y := totalRows * indexRow; y < totalRows*(indexRow+1); y++ {
+			canvas.Set(int(x), int(y), field.CGen[y/cellSize][x/cellSize].Color)
 		}
 	}
 }
