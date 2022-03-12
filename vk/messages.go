@@ -9,9 +9,48 @@ import (
 )
 
 type (
+	MessageLongPoll struct {
+		Id        int64  `json:"messageId"`
+		Flags     int64  `json:"flags"`
+		PeerId    int64  `json:"peerId"`
+		Ts        int64  `json:"ts"`
+		Text      string `json:"text"`
+		Title     string `json:"title"`
+		RepliedId int64  `json:"repliedId"`
+	}
+
 	MessagesSendRs struct {
 	}
 )
+
+func NewMessageLongPoll(event []interface{}) (*MessageLongPoll, error) {
+	msgId, _ := event[1].(json.Number).Int64()
+	msgFlags, _ := event[2].(json.Number).Int64()
+	msgPeerId, _ := event[3].(json.Number).Int64()
+	msgTs, _ := event[4].(json.Number).Int64()
+	msgText := event[5].(string)
+	msgTitle := event[6].(map[string]interface{})
+	msgReply := event[7].(map[string]interface{})
+
+	res := new(MessageLongPoll)
+
+	res.Id = msgId
+	res.Flags = msgFlags
+	res.PeerId = msgPeerId
+	res.Ts = msgTs
+	res.Text = msgText
+	res.Title = msgTitle["title"].(string)
+
+	if msgReply["reply"] != nil {
+		var convMsg struct {
+			Id int64 `json:"conversation_message_id"`
+		}
+		_ = json.Unmarshal([]byte(msgReply["reply"].(string)), &convMsg)
+		res.RepliedId = convMsg.Id
+	}
+
+	return res, nil
+}
 
 func MessagesSend(peerId int64, message string, attachment *Document) (*MessagesSendRs, error) {
 	rq := fasthttp.AcquireRequest()

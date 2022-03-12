@@ -4,7 +4,6 @@ import (
 	"bot/game"
 	"bot/vk"
 	_ "embed"
-	"errors"
 	"fmt"
 	"image/color"
 	"log"
@@ -16,24 +15,21 @@ import (
 //go:embed token.txt
 var token []byte
 
-func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
-	if text == "" {
+func vkMessageRouter(msg *vk.MessageLongPoll) {
+	if !(msg != nil && msg.Text != "") {
 		return
 	}
-	err := logMessage(peerId, ts, text)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	if text[0] == '~' {
+
+	if msg.Text[0] == '~' {
 		switch true {
 
 		//~gen-life-gif/160/190/10/500/100/R0
-		case strings.Contains(text, "gen-life-gif"):
-			params := strings.Split(text, "/")
+		//todo not send msg but edit existing
+		case strings.Contains(msg.Text, "gen-life-gif"):
+			params := strings.Split(msg.Text, "/")
 			fmt.Println(params)
 			if len(params) != 7 {
-				_, err = vk.MessagesSend(peerId, "Invalid params set. Try ~gen-life-gif/width/height/cell/generations/threads", nil)
+				_, err := vk.MessagesSend(msg.PeerId, "Invalid params set. Try ~gen-life-gif/width/height/cell/generations/threads", nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -41,7 +37,7 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 			}
 			width, err := strconv.ParseUint(params[1], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(peerId, "Invalid width", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid width", nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -49,7 +45,7 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 			}
 			height, err := strconv.ParseUint(params[2], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(peerId, "Invalid height", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid height", nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -57,7 +53,7 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 			}
 			cellSize, err := strconv.ParseUint(params[3], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(peerId, "Invalid cell size", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid cell size", nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -65,7 +61,7 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 			}
 			gens, err := strconv.ParseUint(params[4], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(peerId, "Invalid generations", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid generations", nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -73,7 +69,7 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 			}
 			threads, err := strconv.ParseUint(params[5], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(peerId, "Invalid threads", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid threads", nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -81,7 +77,7 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 			}
 
 			if params[6][0] != 'R' && params[6][0] != 'G' && params[6][0] != 'B' {
-				_, err = vk.MessagesSend(peerId, "Color should be R/G/B", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Color should be R/G/B", nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -89,14 +85,14 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 			}
 
 			if width*cellSize > 3840 || height*cellSize > 3840 {
-				_, err = vk.MessagesSend(peerId, "Resolution is too big", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Resolution is too big", nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
 				return
 			}
-			if gens > 500 {
-				_, err = vk.MessagesSend(peerId, "Too many generations", nil)
+			if gens > 1000 {
+				_, err = vk.MessagesSend(msg.PeerId, "Too many generations", nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -139,16 +135,16 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 
 			err = gameOfLife.Generate(uint(width), uint(height), uint(cellSize), uint(gens), uint(threads), palette, "life.gif")
 			if err != nil {
-				_, err = vk.MessagesSend(peerId, "Unable to create GIF, "+err.Error(), nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Unable to create GIF, "+err.Error(), nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
 				return
 			}
 
-			uploadServer, err := vk.DocGetMessageUploadServer("doc", peerId, false)
+			uploadServer, err := vk.DocGetMessageUploadServer("doc", msg.PeerId, false)
 			if err != nil {
-				_, err = vk.MessagesSend(peerId, "Unable to get upload url, "+err.Error(), nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Unable to get upload url, "+err.Error(), nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -157,7 +153,7 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 
 			file, err := vk.DocsUploadToMessageServer(uploadServer, "life.gif")
 			if err != nil {
-				_, err = vk.MessagesSend(peerId, "Unable to upload file, "+err.Error(), nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Unable to upload file, "+err.Error(), nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -166,55 +162,20 @@ func vkMessageRouter(messageId, flags, peerId, ts int64, text string) {
 
 			doc, err := vk.DocsSave(file, "life")
 			if err != nil {
-				_, err = vk.MessagesSend(peerId, "Unable to save doc, "+err.Error(), nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Unable to save doc, "+err.Error(), nil)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
 				return
 			}
 
-			_, err = vk.MessagesSend(peerId, "", &doc.Content)
+			_, err = vk.MessagesSend(msg.PeerId, "", &doc.Content)
 			if err != nil {
 				log.Println("UNABLE TO SEND MESSAGE")
 			}
 			return
-
 		}
 	}
-}
-
-func logMessage(peerId, ts int64, text string) error {
-	var logMsg strings.Builder
-	_, err := fmt.Fprintf(&logMsg, "RECIEVED \"%s\" FROM ", text)
-	if err != nil {
-		return err
-	}
-	if peerId <= vk.PeerMinId {
-		rs, err := vk.UsersGet([]int{int(peerId)}, nil, "")
-		if err != nil {
-			return err
-		}
-		if len(rs.Users) == 0 {
-			return errors.New("users.get returned 0 users")
-		}
-		_, err = fmt.Fprintf(&logMsg, "\"%s\" ", rs.Users[0].FirstName+" "+rs.Users[0].LastName)
-		if err != nil {
-			return err
-		}
-	} else {
-		_, err = fmt.Fprintf(&logMsg, "PEER #%d ", peerId)
-		if err != nil {
-			return err
-		}
-	}
-	_, err = fmt.Fprintf(&logMsg, "AT %s\n", time.Unix(ts, 0).Format("15:04:05 02.01.2006"))
-	if err != nil {
-		return err
-	}
-
-	log.Print(logMsg.String())
-
-	return nil
 }
 
 func vkUserOnlineOfflineLogger(userId, ts int64, isOnline bool) {

@@ -10,7 +10,7 @@ import (
 
 const (
 	apiHost               = "api.vk.com"
-	longPollHost          = "im.vk.com"
+	LongPollHost          = "im.vk.com"
 	docsMessageUploadHost = "pu.vk.com"
 	apiUrl                = "/method"
 
@@ -24,7 +24,7 @@ var (
 	Random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	apiClient                = fasthttp.HostClient{Addr: apiHost, IsTLS: true}
-	longPollClient           = fasthttp.HostClient{Addr: longPollHost, IsTLS: true}
+	longPollClient           = fasthttp.HostClient{Addr: LongPollHost, IsTLS: true}
 	docsMessagesUploadClient = fasthttp.HostClient{Addr: docsMessageUploadHost, IsTLS: true}
 )
 

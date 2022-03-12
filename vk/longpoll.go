@@ -31,7 +31,7 @@ const (
 )
 
 var (
-	NewMsgLongPollHandler func(messageId, flags, peerId, ts int64, text string)
+	NewMsgLongPollHandler func(msg *MessageLongPoll)
 	UserOnlineHandler     func(userId, ts int64, isOnline bool)
 )
 
@@ -85,11 +85,12 @@ func LongPoll(server *LongPollServerRs) {
 		fasthttp.ReleaseResponse(rs)
 	}()
 
-	prepareRequest(longPollHost, ContentTypeUrlEncoded, rq)
+	prepareRequest(LongPollHost, ContentTypeUrlEncoded, rq)
 	rq.URI().SetPath(strings.Split(server.Content.Server, "/")[1])
 
 	rqPostArgs := rq.PostArgs()
 	rqPostArgs.Add("act", "a_check")
+	rq.PostArgs().Add("mode", "74")
 	rqPostArgs.Add("key", server.Content.Key)
 	rqPostArgs.Add("wait", "25")
 	rqPostArgs.Add("version", "3")
@@ -106,6 +107,9 @@ func LongPoll(server *LongPollServerRs) {
 		}
 
 		body := rs.Body()
+
+		log.Println(string(body))
+
 		var bodyBuffer bytes.Buffer
 		bodyBuffer.Write(body)
 
@@ -125,12 +129,12 @@ func LongPoll(server *LongPollServerRs) {
 				if NewMsgLongPollHandler == nil {
 					continue
 				}
-				msgId, _ := lpRs.Updates[i][1].(json.Number).Int64()
-				msgFlags, _ := lpRs.Updates[i][2].(json.Number).Int64()
-				peerId, _ := lpRs.Updates[i][3].(json.Number).Int64()
-				ts, _ := lpRs.Updates[i][4].(json.Number).Int64()
-				text, _ := lpRs.Updates[i][5].(string)
-				go NewMsgLongPollHandler(msgId, msgFlags, peerId, ts, text)
+				msg, err := NewMessageLongPoll(lpRs.Updates[i])
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				go NewMsgLongPollHandler(msg)
 			case EventUserOnline, EventUserOffline:
 				isOnline := updateType == EventUserOnline
 				userId, _ := lpRs.Updates[i][1].(json.Number).Int64()
