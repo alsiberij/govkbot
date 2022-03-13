@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	SecondaryColorSaturation = 45
-	PrimaryColorSaturation   = 175
-	PrimaryColorDiff         = 30
+	SC  = 45
+	PC  = 175
+	PCD = 30
 )
 
 var R = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -26,11 +26,11 @@ type (
 	}
 )
 
-func NewField(m, n uint) *Field {
+func NewField(m, n uint64) *Field {
 	f := new(Field)
 	f.CGen = make([][]Cell, m)
 	f.nGen = make([][]Cell, m)
-	for i := uint(0); i < m; i++ {
+	for i := uint64(0); i < m; i++ {
 		f.CGen[i] = make([]Cell, n)
 		f.nGen[i] = make([]Cell, n)
 	}
