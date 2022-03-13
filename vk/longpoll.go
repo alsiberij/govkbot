@@ -32,7 +32,6 @@ const (
 
 var (
 	NewMsgLongPollHandler func(msg *NewMessageLongPollEvent)
-	UserOnlineHandler     func(userId, ts int64, isOnline bool)
 )
 
 func GetLongPollServer() (*LongPollServerRs, error) {
@@ -133,11 +132,6 @@ func LongPoll(server *LongPollServerRs) {
 					continue
 				}
 				go NewMsgLongPollHandler(msg)
-			case EventUserOnline, EventUserOffline:
-				isOnline := updateType == EventUserOnline
-				userId, _ := lpRs.Updates[i][1].(json.Number).Int64()
-				ts, _ := lpRs.Updates[i][3].(json.Number).Int64()
-				go UserOnlineHandler(-userId, ts, isOnline)
 			}
 		}
 	}
