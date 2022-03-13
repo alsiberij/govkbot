@@ -108,7 +108,7 @@ func validateGameOfLifeParameters(params []string) (*gof.Parameters, error) {
 	routines, err := strconv.ParseUint(params[5], 10, 32)
 	if err != nil {
 		return nil, errors.New("неверное значение количества потоков")
-	} else if routines%height != 0 {
+	} else if height*cellSize%routines != 0 {
 		return nil, errors.New("высота изображения должна быть кратна количеству потоков")
 	}
 

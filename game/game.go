@@ -29,7 +29,7 @@ func Generate(params *Parameters) error {
 	widthImg := params.Width * params.CellSize
 	heightImg := params.Height * params.CellSize
 
-	if widthImg%params.Routines != 0 {
+	if heightImg%params.Routines != 0 {
 		return errors.New("высота изображения должна быть кратна количеству потоков")
 	}
 
