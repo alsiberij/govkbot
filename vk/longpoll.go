@@ -31,7 +31,7 @@ const (
 )
 
 var (
-	NewMsgLongPollHandler func(msg *MessageLongPoll)
+	NewMsgLongPollHandler func(msg *NewMessageLongPollEvent)
 	UserOnlineHandler     func(userId, ts int64, isOnline bool)
 )
 
@@ -107,8 +107,6 @@ func LongPoll(server *LongPollServerRs) {
 		}
 
 		body := rs.Body()
-
-		log.Println(string(body))
 
 		var bodyBuffer bytes.Buffer
 		bodyBuffer.Write(body)

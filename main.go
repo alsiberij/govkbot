@@ -15,7 +15,7 @@ import (
 //go:embed token.txt
 var token []byte
 
-func vkMessageRouter(msg *vk.MessageLongPoll) {
+func vkMessageRouter(msg *vk.NewMessageLongPollEvent) {
 	if !(msg != nil && msg.Text != "") {
 		return
 	}
@@ -29,7 +29,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 			params := strings.Split(msg.Text, "/")
 			fmt.Println(params)
 			if len(params) != 7 {
-				_, err := vk.MessagesSend(msg.PeerId, "Invalid params set. Try ~gen-life-gif/width/height/cell/generations/threads", nil)
+				_, err := vk.MessagesSend(msg.PeerId, "Invalid params set. Try ~gen-life-gif/width/height/cell/generations/threads", nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -37,7 +37,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 			}
 			width, err := strconv.ParseUint(params[1], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(msg.PeerId, "Invalid width", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid width", nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -45,7 +45,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 			}
 			height, err := strconv.ParseUint(params[2], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(msg.PeerId, "Invalid height", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid height", nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -53,7 +53,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 			}
 			cellSize, err := strconv.ParseUint(params[3], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(msg.PeerId, "Invalid cell size", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid cell size", nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -61,7 +61,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 			}
 			gens, err := strconv.ParseUint(params[4], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(msg.PeerId, "Invalid generations", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid generations", nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -69,7 +69,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 			}
 			threads, err := strconv.ParseUint(params[5], 10, 32)
 			if err != nil {
-				_, err = vk.MessagesSend(msg.PeerId, "Invalid threads", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Invalid threads", nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -77,7 +77,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 			}
 
 			if params[6][0] != 'R' && params[6][0] != 'G' && params[6][0] != 'B' {
-				_, err = vk.MessagesSend(msg.PeerId, "Color should be R/G/B", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Color should be R/G/B", nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -85,14 +85,14 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 			}
 
 			if width*cellSize > 3840 || height*cellSize > 3840 {
-				_, err = vk.MessagesSend(msg.PeerId, "Resolution is too big", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Resolution is too big", nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
 				return
 			}
 			if gens > 1000 {
-				_, err = vk.MessagesSend(msg.PeerId, "Too many generations", nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Too many generations", nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -135,7 +135,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 
 			err = gameOfLife.Generate(uint(width), uint(height), uint(cellSize), uint(gens), uint(threads), palette, "life.gif")
 			if err != nil {
-				_, err = vk.MessagesSend(msg.PeerId, "Unable to create GIF, "+err.Error(), nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Unable to create GIF, "+err.Error(), nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -144,7 +144,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 
 			uploadServer, err := vk.DocGetMessageUploadServer("doc", msg.PeerId, false)
 			if err != nil {
-				_, err = vk.MessagesSend(msg.PeerId, "Unable to get upload url, "+err.Error(), nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Unable to get upload url, "+err.Error(), nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -153,7 +153,7 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 
 			file, err := vk.DocsUploadToMessageServer(uploadServer, "life.gif")
 			if err != nil {
-				_, err = vk.MessagesSend(msg.PeerId, "Unable to upload file, "+err.Error(), nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Unable to upload file, "+err.Error(), nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
@@ -162,14 +162,14 @@ func vkMessageRouter(msg *vk.MessageLongPoll) {
 
 			doc, err := vk.DocsSave(file, "life")
 			if err != nil {
-				_, err = vk.MessagesSend(msg.PeerId, "Unable to save doc, "+err.Error(), nil)
+				_, err = vk.MessagesSend(msg.PeerId, "Unable to save doc, "+err.Error(), nil, 0)
 				if err != nil {
 					log.Println("UNABLE TO SEND MESSAGE")
 				}
 				return
 			}
 
-			_, err = vk.MessagesSend(msg.PeerId, "", &doc.Content)
+			_, err = vk.MessagesSend(msg.PeerId, "", &doc.Content, msg.Id)
 			if err != nil {
 				log.Println("UNABLE TO SEND MESSAGE")
 			}
