@@ -18,7 +18,7 @@ func Generate(width, height, cellSize, generations, routines uint, palette color
 	heightImg := height * cellSize
 
 	if widthImg%routines != 0 || heightImg%routines != 0 {
-		return errors.New("width or height % 10 != 0")
+		return errors.New("invalid amount of threads")
 	}
 
 	field := NewField(height, width)

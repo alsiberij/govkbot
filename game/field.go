@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	SecondaryColorSaturation = 25
-	PrimaryColorSaturation   = 155
+	SecondaryColorSaturation = 45
+	PrimaryColorSaturation   = 175
 	PrimaryColorDiff         = 30
 )
 
