@@ -67,7 +67,7 @@ func GenLifeGif(msg *vk.NewMessageLongPollEvent) {
 		return
 	}
 
-	_, err = vk.MessagesSend(msg.PeerId, "", &doc.Content, msg.Id)
+	err = vk.MessagesEdit(msg.Id, msg.PeerId, "", []*vk.Document{&doc.Content})
 	if err != nil {
 		log.Println("~gen-life-gif failed")
 	}
@@ -160,7 +160,7 @@ func validateGameOfLifeParameters(params []string) (*gof.Parameters, error) {
 }
 
 func NotifyAboutError(messageId, peerId int64, err error) {
-	notifyErr := vk.MessagesEdit(messageId, peerId, "Произошла ошибка: "+err.Error())
+	notifyErr := vk.MessagesEdit(messageId, peerId, "Произошла ошибка: "+err.Error(), nil)
 	if notifyErr != nil {
 		log.Println("Failed to notify about: " + err.Error())
 		return

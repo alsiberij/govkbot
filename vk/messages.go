@@ -75,7 +75,7 @@ func MessagesSend(peerId int64, message string, attachment *Document, replyTo in
 	return &result, nil
 }
 
-func MessagesEdit(messageId, peerId int64, message string) error {
+func MessagesEdit(messageId, peerId int64, message string, attachment []*Document) error {
 	rq := fasthttp.AcquireRequest()
 	rs := fasthttp.AcquireResponse()
 
@@ -95,6 +95,18 @@ func MessagesEdit(messageId, peerId int64, message string) error {
 	if message != "" {
 		rq.PostArgs().Add("message", message)
 	}
+
+	var attachments strings.Builder
+	for i := 0; i < len(attachment); i++ {
+		attachments.WriteString(attachment[i].Type)
+		attachments.WriteString(strconv.FormatInt(attachment[i].Doc.OwnerId, 10) + "_")
+		attachments.WriteString(strconv.FormatInt(attachment[i].Doc.Id, 10))
+		if i != len(attachment)-1 {
+			attachments.WriteString(",")
+		}
+	}
+
+	rq.PostArgs().Add("attachment", attachments.String())
 
 	err := apiClient.Do(rq, rs)
 	if err != nil {
