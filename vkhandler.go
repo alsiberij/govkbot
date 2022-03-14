@@ -12,7 +12,11 @@ import (
 )
 
 const (
-	SleepTimeBeforeDelete    = 5 * time.Second
+	SleepTimeBeforeDelete = 5 * time.Second
+
+	CommandPrefix = '$'
+
+	GameOfLifeCommand        = "gen-life"
 	GameOfLifeMaxWidth       = 3840
 	GameOfLifeMaxHeight      = 2160
 	GameOfLifeMaxGenerations = 1000
@@ -23,11 +27,11 @@ func vkMessageHandler(msg *vk.NewMessageLongPollEvent) {
 		return
 	}
 
-	if msg.Text[0] == '~' {
+	if msg.Text[0] == CommandPrefix {
 		switch true {
 
-		//~gen-life-gif/width/height/cell/generations/routines/colorStyle
-		case strings.Contains(msg.Text, "gen-life-gif"):
+		//~gen-life/width/height/cell/generations/routines/colorStyle
+		case strings.Contains(msg.Text, GameOfLifeCommand):
 			GenLifeGif(msg)
 		}
 
