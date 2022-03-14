@@ -18,7 +18,7 @@ type (
 	}
 )
 
-func MessagesSend(peerId int64, message string, attachment *Document, replyTo int64) (*MessagesSendRs, error) {
+func MessagesSend(peerId int64, message string, attachments []*Document, replyTo int64) (*MessagesSendRs, error) {
 	rq := fasthttp.AcquireRequest()
 	rs := fasthttp.AcquireResponse()
 
@@ -34,9 +34,19 @@ func MessagesSend(peerId int64, message string, attachment *Document, replyTo in
 	rq.PostArgs().Add("peer_id", strconv.FormatInt(peerId, 10))
 	rq.PostArgs().Add("random_id", strconv.FormatInt(int64(Random.Int31()), 10))
 
-	//todo not doc only
-	if attachment != nil {
-		rq.PostArgs().Add("attachment", "doc"+strconv.FormatInt(attachment.Doc.OwnerId, 10)+"_"+strconv.FormatInt(attachment.Doc.Id, 10))
+	if len(attachments) > 0 {
+		var att strings.Builder
+		for i := 0; i < len(attachments); i++ {
+			if attachments[i] != nil {
+				att.WriteString(attachments[i].Type)
+				att.WriteString(strconv.FormatInt(attachments[i].Doc.OwnerId, 10))
+				att.WriteString("_" + strconv.FormatInt(attachments[i].Doc.Id, 10))
+				if i != len(attachments)-1 {
+					att.WriteString(",")
+				}
+			}
+		}
+		rq.PostArgs().Add("attachment", att.String())
 	}
 
 	if message != "" {

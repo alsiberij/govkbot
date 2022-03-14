@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SleepTimeBeforeDelete = 5 * time.Second
+	SleepTimeBeforeDelete = 10 * time.Second
 
 	CommandPrefix = '$'
 
@@ -71,7 +71,7 @@ func GenLifeGif(msg *vk.NewMessageLongPollEvent) {
 		return
 	}
 
-	err = vk.MessagesEdit(msg.Id, msg.PeerId, "", []*vk.Document{&doc.Content})
+	_, err = vk.MessagesSend(msg.PeerId, "", []*vk.Document{&doc.Content}, msg.Id)
 	if err != nil {
 		log.Println("~gen-life-gif failed")
 	}
