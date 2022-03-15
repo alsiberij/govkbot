@@ -59,7 +59,7 @@ func Generate(params *Parameters) error {
 		wg.Wait()
 
 		result.Image = append(result.Image, img)
-		result.Delay = append(result.Delay, 10)
+		result.Delay = append(result.Delay, 0)
 
 		field.NextGen()
 	}
