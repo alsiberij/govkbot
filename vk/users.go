@@ -9,9 +9,10 @@ import (
 )
 
 type (
-	UsersGetRs struct {
+	RsUsersGet struct {
 		Users []User `json:"response"`
 	}
+
 	User struct {
 		Id              int    `json:"id"`
 		FirstName       string `json:"first_name"`
@@ -21,8 +22,8 @@ type (
 	}
 )
 
-func UsersGet(userIds []int, fields []string, nameCase string) (*UsersGetRs, error) {
-	var errRs ErrorRs
+func UsersGet(userIds []int, fields []string, nameCase string) (RsUsersGet, error) {
+	var result RsUsersGet
 
 	rq := fasthttp.AcquireRequest()
 	rs := fasthttp.AcquireResponse()
@@ -58,24 +59,27 @@ func UsersGet(userIds []int, fields []string, nameCase string) (*UsersGetRs, err
 
 	err := apiClient.Do(rq, rs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if rs.StatusCode() != 200 {
-		return nil, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
+		return result, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
 	}
 
 	body := rs.Body()
 
+	var errRs RsError
 	err = json.Unmarshal(body, &errRs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if errRs.Error() != "" {
-		return nil, errRs
+		return result, errRs
 	}
 
-	var result UsersGetRs
 	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return result, err
+	}
 
-	return &result, nil
+	return result, nil
 }

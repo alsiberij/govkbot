@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bot/vk"
 	_ "embed"
+	"gobotvk/vk"
 	"log"
 )
 
@@ -24,5 +24,5 @@ func main() {
 
 	vk.NewMsgLongPollHandler = vkMessageHandler
 
-	vk.LongPoll(longPollServer)
+	vk.LongPoll(&longPollServer)
 }

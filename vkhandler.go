@@ -1,9 +1,10 @@
 package main
 
 import (
-	gof "bot/game"
-	"bot/vk"
 	"errors"
+	"gobotvk/crypto"
+	gof "gobotvk/gameOfLife"
+	"gobotvk/vk"
 	"image/color"
 	"log"
 	"strconv"
@@ -20,6 +21,8 @@ const (
 	GameOfLifeMaxWidth       = 3840
 	GameOfLifeMaxHeight      = 2160
 	GameOfLifeMaxGenerations = 1000
+
+	CryptoHashCommand = "sha256"
 )
 
 func vkMessageHandler(msg *vk.NewMessageLongPollEvent) {
@@ -33,15 +36,18 @@ func vkMessageHandler(msg *vk.NewMessageLongPollEvent) {
 		//~gen-life/width/height/cell/generations/routines/colorStyle
 		case strings.Contains(msg.Text, GameOfLifeCommand):
 			GenLifeGif(msg)
-		}
 
+		//~sha256 (replied message)
+		case strings.Contains(msg.Text, CryptoHashCommand):
+			HashMessage(msg)
+		}
 	}
 }
 
 func GenLifeGif(msg *vk.NewMessageLongPollEvent) {
 	params, err := validateGameOfLifeParameters(strings.Split(msg.Text, "/"))
 	if err != nil {
-		NotifyAboutError(msg.Id, msg.PeerId, err)
+		NotifyAboutError(msg.PeerId, err)
 		return
 	}
 
@@ -49,25 +55,25 @@ func GenLifeGif(msg *vk.NewMessageLongPollEvent) {
 
 	err = gof.Generate(params)
 	if err != nil {
-		NotifyAboutError(msg.Id, msg.PeerId, err)
+		NotifyAboutError(msg.PeerId, err)
 		return
 	}
 
 	uploadServer, err := vk.DocGetMessageUploadServer("doc", msg.PeerId, false)
 	if err != nil {
-		NotifyAboutError(msg.Id, msg.PeerId, err)
+		NotifyAboutError(msg.PeerId, err)
 		return
 	}
 
-	file, err := vk.DocsUploadToMessageServer(uploadServer, "life.gif")
+	file, err := vk.DocsUploadToMessageServer(&uploadServer, "life.gif")
 	if err != nil {
-		NotifyAboutError(msg.Id, msg.PeerId, err)
+		NotifyAboutError(msg.PeerId, err)
 		return
 	}
 
-	doc, err := vk.DocsSave(file, "life")
+	doc, err := vk.DocsSave(&file, "life")
 	if err != nil {
-		NotifyAboutError(msg.Id, msg.PeerId, err)
+		NotifyAboutError(msg.PeerId, err)
 		return
 	}
 
@@ -163,8 +169,31 @@ func validateGameOfLifeParameters(params []string) (*gof.Parameters, error) {
 	return r, nil
 }
 
-func NotifyAboutError(messageId, peerId int64, err error) {
-	notifyErr := vk.MessagesEdit(messageId, peerId, "Произошла ошибка: "+err.Error(), nil)
+func HashMessage(msg *vk.NewMessageLongPollEvent) {
+	if msg.RepliedId == 0 {
+		NotifyAboutError(msg.PeerId, errors.New("выберите нужное сообщение ответив на него"))
+		return
+	}
+
+	messages, err := vk.MessagesGetFromConversation([]int64{msg.RepliedId}, msg.PeerId)
+	if err != nil {
+		log.Println(err)
+	}
+
+	if len(messages.Response.Messages) == 0 {
+		NotifyAboutError(msg.PeerId, errors.New("Ошибка получения целевого сообщения"))
+		return
+	}
+
+	_, err = vk.MessagesSend(msg.PeerId, crypto.SHA256([]byte(messages.Response.Messages[0].Text)).ToHexString(), nil, messages.Response.Messages[0].Id)
+	if err != nil {
+		NotifyAboutError(msg.PeerId, err)
+		return
+	}
+}
+
+func NotifyAboutError(peerId int64, err error) {
+	notificationMsg, notifyErr := vk.MessagesSend(peerId, "Произошла ошибка: "+err.Error(), nil, 0)
 	if notifyErr != nil {
 		log.Println("Failed to notify about: " + err.Error())
 		return
@@ -172,7 +201,7 @@ func NotifyAboutError(messageId, peerId int64, err error) {
 
 	time.Sleep(SleepTimeBeforeDelete)
 
-	notifyErr = vk.MessagesDelete([]int64{messageId}, true)
+	notifyErr = vk.MessagesDelete([]int64{notificationMsg.NewMessageId}, true)
 	if notifyErr != nil {
 		log.Println("Failed to delete notification: " + err.Error())
 		return

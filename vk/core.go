@@ -1,10 +1,8 @@
 package vk
 
 import (
-	"errors"
 	"github.com/valyala/fasthttp"
 	"math/rand"
-	"strconv"
 	"time"
 )
 
@@ -13,6 +11,7 @@ const (
 	LongPollHost          = "im.vk.com"
 	docsMessageUploadHost = "pu.vk.com"
 	apiUrl                = "/method"
+	version               = "5.131"
 
 	ContentTypeUrlEncoded    = "application/x-www-form-urlencoded"
 	ContentMultipartFormData = "multipart/form-data"
@@ -27,15 +26,6 @@ var (
 	longPollClient           = fasthttp.HostClient{Addr: LongPollHost, IsTLS: true}
 	docsMessagesUploadClient = fasthttp.HostClient{Addr: docsMessageUploadHost, IsTLS: true}
 )
-
-func SetVersion(apiVersion string) error {
-	_, err := strconv.ParseFloat(version, 32)
-	if err != nil {
-		return errors.New("invalid api version")
-	}
-	version = apiVersion
-	return nil
-}
 
 func prepareRequest(host, contentType string, rq *fasthttp.Request) {
 	rq.Header.SetContentType(contentType)

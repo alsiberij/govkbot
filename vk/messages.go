@@ -4,21 +4,51 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/valyala/fasthttp"
-	"log"
 	"strconv"
 	"strings"
 )
 
 type (
-	MessagesSendRs struct {
+	RsMessagesSend struct {
 		NewMessageId int64 `json:"response"`
 	}
 
-	MessagesEditRs struct {
+	RsMessagesGetFromConversation struct {
+		Response struct {
+			Count    int64     `json:"count"`
+			Messages []Message `json:"items"`
+		} `json:"response"`
+	}
+
+	Message struct {
+		Id               int64  `json:"id"`
+		IdInConversation int64  `json:"conversation_message_id"`
+		Ts               int64  `json:"date"`
+		From             int64  `json:"from"`
+		Out              int64  `json:"out"`
+		Important        bool   `json:"important"`
+		IsHidden         bool   `json:"is_hidden"`
+		PeerId           int64  `json:"peer_id"`
+		RandomId         int64  `json:"random_id"`
+		Text             string `json:"text"`
+		//attachments[{...}]
+		RepliedMessage MessageShort `json:"reply_message"`
+	}
+
+	MessageShort struct {
+		Id               int64  `json:"id"`
+		IdInConversation int64  `json:"conversation_message_id"`
+		Ts               int64  `json:"date"`
+		From             int64  `json:"from"`
+		PeerId           int64  `json:"peer_id"`
+		Text             string `json:"text"`
+		//attachments[{...}]
 	}
 )
 
-func MessagesSend(peerId int64, message string, attachments []*Document, replyTo int64) (*MessagesSendRs, error) {
+func MessagesSend(peerId int64, message string, attachments []*Document, replyTo int64) (RsMessagesSend, error) {
+	var result RsMessagesSend
+
 	rq := fasthttp.AcquireRequest()
 	rs := fasthttp.AcquireResponse()
 
@@ -38,8 +68,7 @@ func MessagesSend(peerId int64, message string, attachments []*Document, replyTo
 		var att strings.Builder
 		for i := 0; i < len(attachments); i++ {
 			if attachments[i] != nil {
-				att.WriteString(attachments[i].Type)
-				att.WriteString(strconv.FormatInt(attachments[i].Doc.OwnerId, 10))
+				att.WriteString(attachments[i].Type + strconv.FormatInt(attachments[i].Doc.OwnerId, 10))
 				att.WriteString("_" + strconv.FormatInt(attachments[i].Doc.Id, 10))
 				if i != len(attachments)-1 {
 					att.WriteString(",")
@@ -59,30 +88,29 @@ func MessagesSend(peerId int64, message string, attachments []*Document, replyTo
 
 	err := apiClient.Do(rq, rs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if rs.StatusCode() != 200 {
-		return nil, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
+		return result, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
 	}
 
 	body := rs.Body()
 
-	var errRs ErrorRs
+	var errRs RsError
 	err = json.Unmarshal(body, &errRs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if errRs.Error() != "" {
-		return nil, errRs
+		return result, errRs
 	}
 
-	var result MessagesSendRs
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
-	return &result, nil
+	return result, nil
 }
 
 func MessagesEdit(messageId, peerId int64, message string, attachment []*Document) error {
@@ -108,8 +136,7 @@ func MessagesEdit(messageId, peerId int64, message string, attachment []*Documen
 
 	var attachments strings.Builder
 	for i := 0; i < len(attachment); i++ {
-		attachments.WriteString(attachment[i].Type)
-		attachments.WriteString(strconv.FormatInt(attachment[i].Doc.OwnerId, 10) + "_")
+		attachments.WriteString(attachment[i].Type + strconv.FormatInt(attachment[i].Doc.OwnerId, 10) + "_")
 		attachments.WriteString(strconv.FormatInt(attachment[i].Doc.Id, 10))
 		if i != len(attachment)-1 {
 			attachments.WriteString(",")
@@ -128,21 +155,13 @@ func MessagesEdit(messageId, peerId int64, message string, attachment []*Documen
 
 	body := rs.Body()
 
-	log.Println(string(body))
-
-	var errRs ErrorRs
+	var errRs RsError
 	err = json.Unmarshal(body, &errRs)
 	if err != nil {
 		return err
 	}
 	if errRs.Error() != "" {
 		return errRs
-	}
-
-	var result MessagesEditRs
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -184,7 +203,7 @@ func MessagesDelete(messageIds []int64, deleteForAll bool) error {
 
 	body := rs.Body()
 
-	var errRs ErrorRs
+	var errRs RsError
 	err = json.Unmarshal(body, &errRs)
 	if err != nil {
 		return err
@@ -193,11 +212,58 @@ func MessagesDelete(messageIds []int64, deleteForAll bool) error {
 		return errRs
 	}
 
-	var result MessagesEditRs
-	err = json.Unmarshal(body, &result)
+	return nil
+}
+
+func MessagesGetFromConversation(messageIds []int64, peerId int64) (RsMessagesGetFromConversation, error) {
+	var result RsMessagesGetFromConversation
+
+	rq := fasthttp.AcquireRequest()
+	rs := fasthttp.AcquireResponse()
+
+	defer func() {
+		fasthttp.ReleaseRequest(rq)
+		fasthttp.ReleaseResponse(rs)
+	}()
+
+	prepareRequest(apiHost, ContentTypeUrlEncoded, rq)
+
+	rq.URI().SetPath(apiUrl + "/messages.getByConversationMessageId")
+
+	rq.PostArgs().Add("peer_id", strconv.FormatInt(peerId, 10))
+
+	var ids strings.Builder
+	for i := 0; i < len(messageIds); i++ {
+		ids.WriteString(strconv.FormatInt(messageIds[i], 10))
+		if i != len(messageIds)-1 {
+			ids.WriteString(",")
+		}
+	}
+	rq.PostArgs().Add("conversation_message_ids", ids.String())
+
+	err := apiClient.Do(rq, rs)
 	if err != nil {
-		return err
+		return result, err
+	}
+	if rs.StatusCode() != 200 {
+		return result, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
 	}
 
-	return nil
+	body := rs.Body()
+
+	var errRs RsError
+	err = json.Unmarshal(body, &errRs)
+	if err != nil {
+		return result, err
+	}
+	if errRs.Error() != "" {
+		return result, errRs
+	}
+
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
 }

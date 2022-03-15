@@ -1,4 +1,4 @@
-module bot
+module gobotvk
 
 go 1.17
 

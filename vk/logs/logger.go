@@ -7,7 +7,7 @@ import (
 )
 
 func Log(rs []byte) {
-	f, err := os.Create("vk/logs/response" + time.Now().Format("2006-01-02--15-04-05") + ".json")
+	f, err := os.Create("vk/logs/response" + time.Now().Format("2006-01-02---15-04-05") + ".json")
 	if err != nil {
 		log.Print("Error creating log file")
 	}

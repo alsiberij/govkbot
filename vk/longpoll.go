@@ -11,31 +11,30 @@ import (
 )
 
 type (
-	LongPollServerRs struct {
+	RsLongPollGetServer struct {
 		Content struct {
 			Server string `json:"server"`
 			Key    string `json:"key"`
 			Ts     int    `json:"ts"`
 		} `json:"response"`
 	}
-	LongPollRs struct {
+
+	RsLongPoll struct {
 		Ts      int             `json:"ts"`
 		Updates [][]interface{} `json:"updates"`
 	}
 )
 
 const (
-	EventNewMessage  = 4
-	EventUserOnline  = 8
-	EventUserOffline = 9
+	EventNewMessage = 4
 )
 
 var (
 	NewMsgLongPollHandler func(msg *NewMessageLongPollEvent)
 )
 
-func GetLongPollServer() (*LongPollServerRs, error) {
-	var errRs ErrorRs
+func GetLongPollServer() (RsLongPollGetServer, error) {
+	var result RsLongPollGetServer
 
 	rq := fasthttp.AcquireRequest()
 	rs := fasthttp.AcquireResponse()
@@ -53,29 +52,32 @@ func GetLongPollServer() (*LongPollServerRs, error) {
 
 	err := apiClient.Do(rq, rs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if rs.StatusCode() != 200 {
-		return nil, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
+		return result, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
 	}
 
 	body := rs.Body()
 
+	var errRs RsError
 	err = json.Unmarshal(body, &errRs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if errRs.Error() != "" {
-		return nil, errRs
+		return result, errRs
 	}
 
-	var result LongPollServerRs
 	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return result, err
+	}
 
-	return &result, nil
+	return result, nil
 }
 
-func LongPoll(server *LongPollServerRs) {
+func LongPoll(server *RsLongPollGetServer) {
 	rq := fasthttp.AcquireRequest()
 	rs := fasthttp.AcquireResponse()
 
@@ -94,11 +96,11 @@ func LongPoll(server *LongPollServerRs) {
 	rqPostArgs.Add("wait", "25")
 	rqPostArgs.Add("version", "3")
 
-	var lpRs LongPollRs
-	lpRs.Ts = server.Content.Ts
+	var RsLp RsLongPoll
+	RsLp.Ts = server.Content.Ts
 	for {
 		rs.Reset()
-		rq.URI().QueryArgs().Set("ts", strconv.Itoa(lpRs.Ts))
+		rq.URI().QueryArgs().Set("ts", strconv.Itoa(RsLp.Ts))
 
 		err := longPollClient.Do(rq, rs)
 		if err != nil {
@@ -113,25 +115,25 @@ func LongPoll(server *LongPollServerRs) {
 		dec := json.NewDecoder(&bodyBuffer)
 		dec.UseNumber()
 
-		err = dec.Decode(&lpRs)
+		err = dec.Decode(&RsLp)
 		if err != nil {
 			return
 		}
 
-		for i := range lpRs.Updates {
-			updateType, _ := lpRs.Updates[i][0].(json.Number).Int64()
-			log.Println(lpRs.Updates[i])
+		for i := range RsLp.Updates {
+			updateType, _ := RsLp.Updates[i][0].(json.Number).Int64()
+			log.Println(RsLp.Updates[i])
 			switch updateType {
 			case EventNewMessage:
 				if NewMsgLongPollHandler == nil {
 					continue
 				}
-				msg, err := NewMessageLongPoll(lpRs.Updates[i])
+				msg, err := NewMessageLongPoll(RsLp.Updates[i])
 				if err != nil {
 					log.Println(err)
 					continue
 				}
-				go NewMsgLongPollHandler(msg)
+				go NewMsgLongPollHandler(&msg)
 			}
 		}
 	}

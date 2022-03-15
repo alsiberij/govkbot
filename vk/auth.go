@@ -7,7 +7,6 @@ import (
 
 var (
 	accessToken string
-	version     = "5.131"
 
 	isValidToken = regexp.MustCompile("[0-9a-f]{85}").MatchString
 )

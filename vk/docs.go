@@ -1,7 +1,6 @@
 package vk
 
 import (
-	"bot/vk/logs"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -13,17 +12,17 @@ import (
 )
 
 type (
-	DocsGetMessageUploadServerRs struct {
+	RsDocsGetMessageUploadServer struct {
 		Content struct {
 			Url string `json:"upload_url"`
 		} `json:"response"`
 	}
 
-	DocsUploadRs struct {
+	RsDocsUpload struct {
 		File string `json:"file"`
 	}
 
-	DocsSaveRs struct {
+	RsDocsSave struct {
 		Content Document `json:"response"`
 	}
 
@@ -41,16 +40,12 @@ type (
 			//todo Preview(gif)
 			IsLicenced int64 `json:"isLicenced"`
 		} `json:"doc"`
-
-		/*
-			AudioMessage struct {
-
-			} `json:"audio_msg"`
-		*/
 	}
 )
 
-func DocGetMessageUploadServer(docType string, peerId int64, isGroupChat bool) (*DocsGetMessageUploadServerRs, error) {
+func DocGetMessageUploadServer(docType string, peerId int64, isGroupChat bool) (RsDocsGetMessageUploadServer, error) {
+	var result RsDocsGetMessageUploadServer
+
 	rq := fasthttp.AcquireRequest()
 	rs := fasthttp.AcquireResponse()
 
@@ -73,33 +68,34 @@ func DocGetMessageUploadServer(docType string, peerId int64, isGroupChat bool) (
 
 	err := apiClient.Do(rq, rs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if rs.StatusCode() != 200 {
-		return nil, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
+		return result, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
 	}
 
 	body := rs.Body()
 
-	var errRs ErrorRs
+	var errRs RsError
 	err = json.Unmarshal(body, &errRs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if errRs.Error() != "" {
-		return nil, errRs
+		return result, errRs
 	}
 
-	var result DocsGetMessageUploadServerRs
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
-	return &result, nil
+	return result, nil
 }
 
-func DocsUploadToMessageServer(server *DocsGetMessageUploadServerRs, file string) (*DocsUploadRs, error) {
+func DocsUploadToMessageServer(server *RsDocsGetMessageUploadServer, file string) (RsDocsUpload, error) {
+	var result RsDocsUpload
+
 	rq := fasthttp.AcquireRequest()
 	rs := fasthttp.AcquireResponse()
 
@@ -116,17 +112,17 @@ func DocsUploadToMessageServer(server *DocsGetMessageUploadServerRs, file string
 	w := multipart.NewWriter(bodyBuff)
 	fw, err := w.CreateFormFile("file", file)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
 	_, err = io.Copy(fw, f)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
 	_ = f.Close()
@@ -137,33 +133,34 @@ func DocsUploadToMessageServer(server *DocsGetMessageUploadServerRs, file string
 
 	err = docsMessagesUploadClient.Do(rq, rs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if rs.StatusCode() != 200 {
-		return nil, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
+		return result, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
 	}
 
 	body := rs.Body()
 
-	var errRs ErrorRs
+	var errRs RsError
 	err = json.Unmarshal(body, &errRs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if errRs.Error() != "" {
-		return nil, errRs
+		return result, errRs
 	}
 
-	var result DocsUploadRs
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
-	return &result, nil
+	return result, nil
 }
 
-func DocsSave(file *DocsUploadRs, title string) (*DocsSaveRs, error) {
+func DocsSave(file *RsDocsUpload, title string) (RsDocsSave, error) {
+	var result RsDocsSave
+
 	rq := fasthttp.AcquireRequest()
 	rs := fasthttp.AcquireResponse()
 
@@ -181,29 +178,27 @@ func DocsSave(file *DocsUploadRs, title string) (*DocsSaveRs, error) {
 
 	err := apiClient.Do(rq, rs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if rs.StatusCode() != 200 {
-		return nil, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
+		return result, errors.New("status code " + strconv.Itoa(rs.StatusCode()) + "returned")
 	}
 
 	body := rs.Body()
-	logs.Log(body)
 
-	var errRs ErrorRs
+	var errRs RsError
 	err = json.Unmarshal(body, &errRs)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	if errRs.Error() != "" {
-		return nil, errRs
+		return result, errRs
 	}
 
-	var result DocsSaveRs
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
-	return &result, nil
+	return result, nil
 }

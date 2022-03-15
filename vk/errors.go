@@ -3,7 +3,7 @@ package vk
 import "encoding/json"
 
 type (
-	ErrorRs struct {
+	RsError struct {
 		Content struct {
 			Code int    `json:"error_code"`
 			Msg  string `json:"error_msg"`
@@ -11,7 +11,7 @@ type (
 	}
 )
 
-func (e ErrorRs) Error() string {
+func (e RsError) Error() string {
 	if e.Content.Code == 0 {
 		return ""
 	}
