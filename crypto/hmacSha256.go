@@ -1,4 +1,4 @@
-package crpt
+package crypto
 
 type Digest []uint32
 
