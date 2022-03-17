@@ -1,6 +1,9 @@
 package vk
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+)
 
 type (
 	NewMessageLongPollEvent struct {
@@ -17,6 +20,10 @@ type (
 
 func NewMessageLongPoll(event []interface{}) (NewMessageLongPollEvent, error) {
 	var result NewMessageLongPollEvent
+
+	if len(event) != 8 {
+		return result, errors.New("данное событие - не новое сообщение")
+	}
 
 	msgId, _ := event[1].(json.Number).Int64()
 	msgFlags, _ := event[2].(json.Number).Int64()

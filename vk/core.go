@@ -13,8 +13,7 @@ const (
 	apiUrl                = "/method"
 	version               = "5.131"
 
-	ContentTypeUrlEncoded    = "application/x-www-form-urlencoded"
-	ContentMultipartFormData = "multipart/form-data"
+	ContentTypeUrlEncoded = "application/x-www-form-urlencoded"
 
 	PeerMinId = 2000000000
 )

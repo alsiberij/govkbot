@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	SC  = 45
-	PC  = 175
-	PCD = 30
+	SC = 45  //SECONDARY COLOR
+	PC = 175 //PRIMARY COLOR
+	CD = 30  //COLOR DIFFERENCE
 )
 
 var R = rand.New(rand.NewSource(time.Now().UnixNano()))

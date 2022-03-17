@@ -33,7 +33,7 @@ func vkMessageHandler(msg *vk.NewMessageLongPollEvent) {
 	if msg.Text[0] == CommandPrefix {
 		switch true {
 
-		//~gen-life/width/height/cell/generations/routines/colorStyle
+		//~gen-life/width/height/cell/generations/colorStyle
 		case strings.Contains(msg.Text, GameOfLifeCommand):
 			GenLifeGif(msg)
 
@@ -45,6 +45,11 @@ func vkMessageHandler(msg *vk.NewMessageLongPollEvent) {
 }
 
 func GenLifeGif(msg *vk.NewMessageLongPollEvent) {
+	if msg == nil {
+		log.Println("Message is nil //$gen-life")
+		return
+	}
+
 	params, err := validateGameOfLifeParameters(strings.Split(msg.Text, "/"))
 	if err != nil {
 		NotifyAboutError(msg.PeerId, err)
@@ -85,8 +90,8 @@ func GenLifeGif(msg *vk.NewMessageLongPollEvent) {
 }
 
 func validateGameOfLifeParameters(params []string) (*gof.Parameters, error) {
-	if len(params) != 7 {
-		return nil, errors.New("неверное количество параметров, попробуйте ~gen-life-gif/w/h/c/g/t/cS")
+	if len(params) != 6 {
+		return nil, errors.New("неверное количество параметров, попробуйте " + string(CommandPrefix) + GameOfLifeCommand + "/w/h/c/g/cS")
 	}
 
 	width, err := strconv.ParseUint(params[1], 10, 32)
@@ -115,40 +120,33 @@ func validateGameOfLifeParameters(params []string) (*gof.Parameters, error) {
 		return nil, errors.New("превышено максимальное количество поколений")
 	}
 
-	routines, err := strconv.ParseUint(params[5], 10, 32)
-	if err != nil {
-		return nil, errors.New("неверное значение количества потоков")
-	} else if height*cellSize%routines != 0 {
-		return nil, errors.New("высота изображения должна быть кратна количеству потоков")
-	}
-
 	palette := make([]color.Color, 0, 4)
-	if len(params[6]) == 2 {
-		needDifColor := params[6][1] == '1'
-		switch params[6][0] {
+	if len(params[5]) == 2 {
+		needDifColor := params[5][1] == '1'
+		switch params[5][0] {
 		case 'R':
 			palette = []color.Color{
 				color.RGBA{R: gof.PC, G: gof.SC, B: gof.SC, A: 255},
 			}
 			if needDifColor {
-				palette = append(palette, color.RGBA{R: gof.PC + gof.PCD, G: gof.SC, B: gof.SC, A: 255})
-				palette = append(palette, color.RGBA{R: gof.PC - gof.PCD, G: gof.SC, B: gof.SC, A: 255})
+				palette = append(palette, color.RGBA{R: gof.PC + gof.CD, G: gof.SC, B: gof.SC, A: 255})
+				palette = append(palette, color.RGBA{R: gof.PC - gof.CD, G: gof.SC, B: gof.SC, A: 255})
 			}
 		case 'G':
 			palette = []color.Color{
 				color.RGBA{R: gof.SC, G: gof.PC, B: gof.SC, A: 255},
 			}
 			if needDifColor {
-				palette = append(palette, color.RGBA{R: gof.SC, G: gof.PC + gof.PCD, B: gof.SC, A: 255})
-				palette = append(palette, color.RGBA{R: gof.SC, G: gof.PC - gof.PCD, B: gof.SC, A: 255})
+				palette = append(palette, color.RGBA{R: gof.SC, G: gof.PC + gof.CD, B: gof.SC, A: 255})
+				palette = append(palette, color.RGBA{R: gof.SC, G: gof.PC - gof.CD, B: gof.SC, A: 255})
 			}
 		case 'B':
 			palette = []color.Color{
 				color.RGBA{R: gof.SC, G: gof.SC, B: gof.PC, A: 255},
 			}
 			if needDifColor {
-				palette = append(palette, color.RGBA{R: gof.SC, G: gof.SC, B: gof.PC + gof.PCD, A: 255})
-				palette = append(palette, color.RGBA{R: gof.SC, G: gof.SC, B: gof.PC - gof.PCD, A: 255})
+				palette = append(palette, color.RGBA{R: gof.SC, G: gof.SC, B: gof.PC + gof.CD, A: 255})
+				palette = append(palette, color.RGBA{R: gof.SC, G: gof.SC, B: gof.PC - gof.CD, A: 255})
 			}
 		default:
 			return nil, errors.New("доступны только цвета R, G, B")
@@ -163,13 +161,17 @@ func validateGameOfLifeParameters(params []string) (*gof.Parameters, error) {
 	r.Height = height
 	r.CellSize = cellSize
 	r.Generations = gens
-	r.Routines = routines
 	r.Palette = palette
 
 	return r, nil
 }
 
 func HashMessage(msg *vk.NewMessageLongPollEvent) {
+	if msg == nil {
+		log.Println("Message is nil //$sha256")
+		return
+	}
+
 	if msg.RepliedId == 0 {
 		NotifyAboutError(msg.PeerId, errors.New("выберите нужное сообщение ответив на него"))
 		return
@@ -181,11 +183,11 @@ func HashMessage(msg *vk.NewMessageLongPollEvent) {
 	}
 
 	if len(messages.Response.Messages) == 0 {
-		NotifyAboutError(msg.PeerId, errors.New("Ошибка получения целевого сообщения"))
+		NotifyAboutError(msg.PeerId, errors.New("ошибка получения целевого сообщения"))
 		return
 	}
 
-	_, err = vk.MessagesSend(msg.PeerId, crypto.SHA256([]byte(messages.Response.Messages[0].Text)).ToHexString(), nil, messages.Response.Messages[0].Id)
+	_, err = vk.MessagesSend(msg.PeerId, "SHA256: "+crypto.SHA256([]byte(messages.Response.Messages[0].Text)).ToHexString(), nil, messages.Response.Messages[0].Id)
 	if err != nil {
 		NotifyAboutError(msg.PeerId, err)
 		return

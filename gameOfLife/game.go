@@ -1,7 +1,6 @@
 package gameOfLife
 
 import (
-	"errors"
 	"image"
 	"image/color"
 	"image/gif"
@@ -16,7 +15,6 @@ type (
 		Height      uint64
 		CellSize    uint64
 		Generations uint64
-		Routines    uint64
 		Palette     color.Palette
 		FileName    string
 	}
@@ -28,10 +26,6 @@ func Generate(params *Parameters) error {
 
 	widthImg := params.Width * params.CellSize
 	heightImg := params.Height * params.CellSize
-
-	if heightImg%params.Routines != 0 {
-		return errors.New("высота изображения должна быть кратна количеству потоков")
-	}
 
 	field := NewField(params.Height, params.Width)
 
@@ -48,11 +42,15 @@ func Generate(params *Parameters) error {
 
 		img := image.NewPaletted(image.Rectangle{Min: upLeft, Max: lowRight}, params.Palette)
 
-		wg.Add(int(params.Routines))
-		for i := uint64(0); i < params.Routines; i++ {
+		routines := heightImg
+		if routines > 100 {
+			routines = 100
+		}
+		wg.Add(int(routines))
+		for i := uint64(0); i < routines; i++ {
 			ii := i
 			go func() {
-				draw(img, field, heightImg/params.Routines, ii, widthImg, params.CellSize)
+				draw(img, field, heightImg/routines, ii, widthImg, params.CellSize)
 				wg.Done()
 			}()
 		}

@@ -96,13 +96,13 @@ func MessagesSend(peerId int64, message string, attachments []*Document, replyTo
 
 	body := rs.Body()
 
-	var errRs RsError
-	err = json.Unmarshal(body, &errRs)
+	var rsErr RsError
+	err = json.Unmarshal(body, &rsErr)
 	if err != nil {
 		return result, err
 	}
-	if errRs.Error() != "" {
-		return result, errRs
+	if rsErr.Error() != "" {
+		return result, rsErr
 	}
 
 	err = json.Unmarshal(body, &result)
